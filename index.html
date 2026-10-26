@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Haddonfield Exits</title>
+<meta name="description" content="Interactive exit map for Halloween: The Game — filter exits, track which ones spawned this match, and edit your own markers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0a09; --panel:#16120e; --panel2:#1f1913; --line:#352a20; --text:#f3e9dc; --muted:#a3958a;
+  --accent:#ff7a1a; --accent2:#ffb36b;
+  --cellar:#b388ff; --gate:#4ade80; --car:#ff9f43; --yes:#ffd166; --no:#5c534c;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,-apple-system,Segoe UI,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+kbd{font:600 11px/1 ui-monospace,monospace;background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:2px 5px}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:14px;padding:10px 14px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#1b120a,#110c08);flex-wrap:wrap}
+.logo{font-family:Creepster,Impact,sans-serif;font-size:28px;line-height:1;color:var(--accent);letter-spacing:1px;text-shadow:0 0 14px rgba(255,122,26,.45);white-space:nowrap}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.tab{background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--muted);white-space:nowrap;transition:.15s}
+.tab:hover{color:var(--text);border-color:#5a4632}
+.tab[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#1a0d02;font-weight:600}
+.tab .k{opacity:.55;font-size:11px;margin-right:4px}
+.hbtns{display:flex;gap:6px}
+.iconbtn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;width:34px;height:34px;display:grid;place-items:center}
+.iconbtn:hover{border-color:var(--accent)}
+
+/* ---------- layout ---------- */
+main{flex:1;display:flex;min-height:0}
+#viewport{position:relative;flex:1;overflow:hidden;background:
+  radial-gradient(ellipse at center,#1a140f 0%,#0c0a09 70%);touch-action:none;cursor:grab;user-select:none}
+#viewport.panning{cursor:grabbing}
+#viewport.edit{cursor:crosshair}
+#stage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#mapimg{display:block;width:100%;height:100%;pointer-events:none;-webkit-user-drag:none;image-rendering:auto}
+#stage.noimg{background-color:#15110d;background-image:linear-gradient(#2a2119 1px,transparent 1px),linear-gradient(90deg,#2a2119 1px,transparent 1px);background-size:80px 80px;border:2px dashed #4a3a2a}
+.placeholder{position:absolute;inset:0;display:none;place-items:center;text-align:center;color:var(--muted);padding:40px}
+#stage.noimg .placeholder{display:grid}
+.placeholder div{font-size:calc(22px * var(--inv));max-width:calc(560px * var(--inv));line-height:1.5}
+.placeholder b{color:var(--accent2)}
+.placeholder code{background:#000a;padding:1px 6px;border-radius:4px}
+#markers{position:absolute;inset:0}
+
+.marker{position:absolute;width:34px;height:34px;margin:0;padding:0;border-radius:50%;border:2.5px solid var(--c);background:#120e0bee;color:var(--c);display:grid;place-items:center;
+  transform:translate(-50%,-50%) scale(var(--inv));transform-origin:center;box-shadow:0 2px 8px #000c;transition:opacity .15s,filter .15s}
+.marker svg{width:18px;height:18px}
+.marker .n{position:absolute;right:-7px;top:-7px;min-width:17px;height:17px;border-radius:9px;background:var(--c);color:#120e0b;font:700 10px/17px Inter,sans-serif;text-align:center;padding:0 3px}
+.marker.cellar{--c:var(--cellar)} .marker.gate{--c:var(--gate)} .marker.car{--c:var(--car)}
+.marker:hover{z-index:5;box-shadow:0 0 0 4px #ffffff22,0 2px 8px #000c}
+.marker.sel{z-index:6;outline:3px solid #fff;outline-offset:3px}
+.marker.yes{background:var(--c);color:#120e0b;z-index:4;animation:pulse 1.6s ease-out infinite}
+.marker.yes .n{background:#120e0b;color:var(--c)}
+.marker.no{filter:grayscale(1);opacity:.35}
+.marker.no::after{content:"";position:absolute;inset:4px;background:linear-gradient(45deg,transparent 45%,#ff5252 45%,#ff5252 55%,transparent 55%)}
+.marker.hide{display:none}
+#viewport.edit .marker{cursor:move}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 70%,transparent),0 2px 8px #000c}100%{box-shadow:0 0 0 18px transparent,0 2px 8px #000c}}
+
+/* floating controls */
+.zoomctl{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px;z-index:10}
+.zoomctl button{width:38px;height:38px;border-radius:10px;background:#16120ee6;border:1px solid var(--line);font-size:18px;backdrop-filter:blur(6px)}
+.zoomctl button:hover{border-color:var(--accent)}
+.modebadge{position:absolute;left:12px;top:12px;z-index:10;background:#16120ee6;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12px;color:var(--muted);backdrop-filter:blur(6px);pointer-events:none}
+.modebadge b{color:var(--accent)}
+#card{position:absolute;left:12px;bottom:12px;z-index:10;max-width:min(340px,calc(100% - 80px));background:#16120ef2;border:1px solid var(--line);border-left:4px solid var(--c,var(--accent));border-radius:var(--radius);padding:10px 12px;display:none;backdrop-filter:blur(6px)}
+#card.show{display:block}
+#card h4{margin:0 0 2px;font-size:15px}
+#card p{margin:4px 0 0;color:var(--muted);white-space:pre-wrap}
+#card .st{font-size:12px;margin-top:6px}
+
+/* ---------- sidebar ---------- */
+aside{width:340px;flex-shrink:0;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;display:flex;flex-direction:column}
+.sec{padding:14px;border-bottom:1px solid var(--line)}
+.sec h3{margin:0 0 10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:7px;color:var(--muted);font-weight:600}
+.seg button[aria-pressed=true]{background:var(--accent);color:#1a0d02}
+.hint{color:var(--muted);font-size:12.5px;margin:10px 0 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:5px 10px 5px 7px;font-weight:500}
+.chip svg{width:15px;height:15px;color:var(--c)}
+.chip .ct{color:var(--muted);font-size:12px}
+.chip[aria-pressed=false]{opacity:.4}
+.chip[aria-pressed=false] .lbl{text-decoration:line-through}
+.chip.cellar{--c:var(--cellar)} .chip.gate{--c:var(--gate)} .chip.car{--c:var(--car)}
+.chip.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--panel2))}
+label.check{display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--muted);cursor:pointer}
+label.check input{accent-color:var(--accent);width:16px;height:16px}
+.tally{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tally div{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+.tally b{display:block;font-size:20px;line-height:1.1}
+.tally span{font-size:11px;color:var(--muted)}
+.tally .y b{color:var(--yes)} .tally .x b{color:#ff6b6b}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#1a0d02;font-weight:600}
+.btn.danger:hover{border-color:#ff5252;color:#ff8a8a}
+.btn.sm{padding:4px 9px;font-size:12px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+.list{display:flex;flex-direction:column;gap:2px}
+.grp{font-size:12px;color:var(--muted);margin:10px 0 4px;display:flex;justify-content:space-between}
+.grp:first-child{margin-top:0}
+.item{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+.item:hover{background:var(--panel2)}
+.item.sel{border-color:var(--accent);background:var(--panel2)}
+.item .ic{width:28px;height:28px;border-radius:50%;border:2px solid var(--c);color:var(--c);display:grid;place-items:center;flex-shrink:0}
+.item .ic svg{width:15px;height:15px}
+.item.cellar{--c:var(--cellar)} .item.gate{--c:var(--gate)} .item.car{--c:var(--car)}
+.item .tx{flex:1;min-width:0}
+.item .tx b{font-weight:600;display:block}
+.item .tx small{color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item.no{opacity:.45}
+.pill{border:1px solid var(--line);background:transparent;border-radius:999px;font-size:11px;padding:3px 8px;color:var(--muted);white-space:nowrap}
+.pill.yes{background:var(--yes);border-color:var(--yes);color:#1a1200;font-weight:700}
+.pill.no{border-color:#ff525266;color:#ff8a8a}
+.empty{color:var(--muted);font-size:13px;padding:6px 0}
+
+.types{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.types button{border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--muted)}
+.types button svg{width:20px;height:20px;color:var(--c)}
+.types button .pc{font-size:11px}
+.types button .pc.ok{color:var(--gate)}
+.types .cellar{--c:var(--cellar)} .types .gate{--c:var(--gate)} .types .car{--c:var(--car)}
+.types button[aria-pressed=true]{border-color:var(--c);color:var(--text);background:color-mix(in srgb,var(--c) 16%,var(--panel2))}
+.field{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.field span{font-size:12px;color:var(--muted)}
+.field input,.field select,.field textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%}
+.field textarea{resize:vertical;min-height:58px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
+.status{font-size:12px;color:var(--muted);margin-top:8px}
+.status.dirty{color:var(--accent2)}
+
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;max-width:560px;width:calc(100% - 32px);padding:0}
+dialog::backdrop{background:#000b}
+dialog .in{padding:20px 22px}
+dialog h2{margin:0 0 6px;font-family:Creepster,Impact,sans-serif;font-weight:400;color:var(--accent);font-size:28px;letter-spacing:1px}
+dialog h4{margin:16px 0 6px}
+dialog ul{margin:0;padding-left:18px;color:#d9ccbf}
+dialog li{margin:3px 0}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;color:#d9ccbf}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#1a0d02;font-weight:600;padding:8px 16px;border-radius:999px;opacity:0;transition:.2s;pointer-events:none;z-index:100}
+.toast.show{opacity:1;transform:translateX(-50%)}
+#viewport.dragover::after{content:"Drop map image";position:absolute;inset:10px;border:3px dashed var(--accent);border-radius:14px;display:grid;place-items:center;font-size:22px;font-weight:700;color:var(--accent);background:#0009;z-index:20}
+
+@media (max-width:820px){
+  header{padding:8px 10px;gap:8px}
+  .logo{font-size:22px}
+  .tabs{order:3;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .tab .k{display:none}
+  main{flex-direction:column}
+  aside{width:auto;border-left:0;border-top:1px solid var(--line);max-height:42vh}
+  #viewport{min-height:50vh}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Haddonfield Exits</div>
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+  <div class="hbtns">
+    <button class="iconbtn" id="helpBtn" title="Help & shortcuts (?)" aria-label="Help">?</button>
+  </div>
+</header>
+
+<main>
+  <div id="viewport">
+    <div id="stage">
+      <img id="mapimg" alt="">
+      <div class="placeholder"><div>
+        <b>No map image yet.</b><br>
+        Drop a screenshot of the map here, or put <code id="phpath">maps/…png</code> next to this page.<br>
+        You can still place and use markers on this grid.
+      </div></div>
+      <div id="markers"></div>
+    </div>
+    <div class="modebadge" id="modebadge"></div>
+    <div id="card"></div>
+    <div class="zoomctl">
+      <button id="zin" title="Zoom in (+)" aria-label="Zoom in">+</button>
+      <button id="zout" title="Zoom out (−)" aria-label="Zoom out">−</button>
+      <button id="zfit" title="Fit map (F)" aria-label="Fit map">⤢</button>
+    </div>
+  </div>
+
+  <aside id="side">
+    <div class="sec">
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="mView" aria-pressed="true">Play</button>
+        <button id="mEdit" aria-pressed="false">Edit markers</button>
+      </div>
+      <p class="hint" id="modeHint"></p>
+    </div>
+    <div id="sideBody"></div>
+  </aside>
+</main>
+
+<dialog id="help"><div class="in">
+  <h2>How it works</h2>
+  <p style="color:var(--muted);margin:0">Exits are <em>possible</em> spawns — each match only uses some of them. Use Play mode to track what you've found.</p>
+  <h4>Play mode</h4>
+  <ul>
+    <li>Tap an exit to cycle: <b style="color:var(--yes)">Spawned</b> → <b style="color:#ff8a8a">Not here</b> → unknown.</li>
+    <li>Turn on <em>Hide ruled-out</em> to declutter as you scout. <b>Reset match</b> clears it for the next round.</li>
+    <li>Filter by Cellar, Gate or Car with the chips.</li>
+  </ul>
+  <h4>Edit mode</h4>
+  <ul>
+    <li>Pick a type, then click the map to place an exit. Drag to move. Select one to add a note or delete it.</li>
+    <li>Drop a map screenshot onto the map (or use <em>Upload image</em>) — it's saved in this browser.</li>
+    <li>Edits save in this browser. <b>Export exits.json</b> and put it next to <code>index.html</code> on your host so everyone sees them.</li>
+  </ul>
+  <h4>Shortcuts</h4>
+  <div class="keys">
+    <span><kbd>1</kbd>–<kbd>4</kbd></span><span>Switch map</span>
+    <span><kbd>E</kbd></span><span>Toggle edit mode</span>
+    <span><kbd>C</kbd> <kbd>G</kbd> <kbd>V</kbd></span><span>Edit: place Cellar / Gate / Vehicle</span>
+    <span><kbd>Del</kbd></span><span>Edit: delete selected</span>
+    <span><kbd>F</kbd> <kbd>+</kbd> <kbd>−</kbd></span><span>Fit / zoom</span>
+    <span><kbd>R</kbd></span><span>Reset match tracking</span>
+    <span><kbd>Esc</kbd></span><span>Deselect</span>
+  </div>
+  <div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn primary" onclick="this.closest('dialog').close()">Got it</button></div>
+</div></dialog>
+
+<input type="file" id="imgFile" accept="image/*" hidden>
+<input type="file" id="jsonFile" accept="application/json,.json" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIG — maps and the per-type exit counts listed in the
+   Mobalytics guide (used as "placed X / Y" targets in Edit mode).
+   ============================================================ */
+const MAPS = [
+  { id:'east-haddonfield',    name:'East Haddonfield',        expected:{cellar:5, gate:1, car:4} },
+  { id:'haddonfield-heights', name:'Haddonfield Heights',     expected:{cellar:8, gate:3, car:4} },
+  { id:'town-center',         name:'Haddonfield Town Center', expected:{cellar:3, gate:1, car:4} },
+  { id:'orange-grove',        name:'Orange Grove Estates',    expected:{cellar:4, gate:3, car:5} },
+];
+
+/* Optional: paste the contents of an exported exits.json here to bake
+   the markers into this single file (used only if exits.json isn't found). */
+const EMBEDDED = {"version":1,"maps":{"east-haddonfield":{"image":"maps/east-haddonfield.webp","markers":[{"id":"ea1","type":"cellar","x":12.03,"y":19.65,"note":""},{"id":"ea2","type":"cellar","x":56.09,"y":11.24,"note":""},{"id":"ea3","type":"cellar","x":93.46,"y":53.29,"note":""},{"id":"ea4","type":"cellar","x":40.72,"y":70.87,"note":""},{"id":"ea5","type":"cellar","x":66.32,"y":80.58,"note":""},{"id":"ea6","type":"gate","x":4.64,"y":75.84,"note":""},{"id":"ea7","type":"car","x":70.71,"y":11.16,"note":""},{"id":"ea8","type":"car","x":15.97,"y":52.29,"note":""},{"id":"ea9","type":"car","x":45.21,"y":65.9,"note":""},{"id":"ea10","type":"car","x":77.3,"y":65.67,"note":""}]},"haddonfield-heights":{"image":"maps/haddonfield-heights.webp","markers":[{"id":"ha1","type":"cellar","x":36.15,"y":22.91,"note":""},{"id":"ha2","type":"cellar","x":51.15,"y":23.15,"note":""},{"id":"ha3","type":"cellar","x":87.4,"y":27.76,"note":""},{"id":"ha4","type":"cellar","x":17.71,"y":34.18,"note":""},{"id":"ha5","type":"cellar","x":43.96,"y":60.73,"note":""},{"id":"ha6","type":"cellar","x":81.09,"y":62.55,"note":""},{"id":"ha7","type":"cellar","x":19.64,"y":87.7,"note":""},{"id":"ha8","type":"cellar","x":56.3,"y":82.67,"note":""},{"id":"ha9","type":"gate","x":47.6,"y":5.33,"note":""},{"id":"ha10","type":"gate","x":95.0,"y":18.79,"note":""},{"id":"ha11","type":"gate","x":62.55,"y":91.03,"note":""},{"id":"ha12","type":"car","x":59.48,"y":16.67,"note":""},{"id":"ha13","type":"car","x":40.78,"y":46.55,"note":""},{"id":"ha14","type":"car","x":55.36,"y":63.45,"note":""},{"id":"ha15","type":"car","x":21.82,"y":95.21,"note":""}]},"town-center":{"image":"maps/town-center.webp","markers":[{"id":"to1","type":"cellar","x":14.84,"y":38.8,"note":""},{"id":"to2","type":"cellar","x":55.54,"y":44.04,"note":""},{"id":"to3","type":"cellar","x":62.83,"y":76.56,"note":""},{"id":"to4","type":"gate","x":92.83,"y":94.92,"note":""},{"id":"to5","type":"car","x":26.85,"y":32.73,"note":""},{"id":"to6","type":"car","x":72.5,"y":36.28,"note":""},{"id":"to7","type":"car","x":73.1,"y":68.58,"note":""},{"id":"to8","type":"car","x":54.84,"y":86.12,"note":""}]},"orange-grove":{"image":"maps/orange-grove.webp","markers":[{"id":"or1","type":"cellar","x":59.73,"y":12.8,"note":""},{"id":"or2","type":"cellar","x":93.15,"y":60.75,"note":""},{"id":"or3","type":"cellar","x":30.82,"y":88.92,"note":""},{"id":"or4","type":"cellar","x":64.95,"y":85.05,"note":""},{"id":"or5","type":"gate","x":50.98,"y":6.34,"note":""},{"id":"or6","type":"gate","x":89.13,"y":9.46,"note":""},{"id":"or7","type":"gate","x":32.23,"y":95.7,"note":""},{"id":"or8","type":"car","x":51.03,"y":24.84,"note":""},{"id":"or9","type":"car","x":32.61,"y":32.31,"note":""},{"id":"or10","type":"car","x":53.32,"y":45.59,"note":""},{"id":"or11","type":"car","x":35.05,"y":66.45,"note":""},{"id":"or12","type":"car","x":54.67,"y":80.59,"note":""}]}}};
+
+const ICONS = {
+  cellar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 20h18M5 20v-4h4v-4h4V8h4V4h3"/></svg>',
+  gate:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 3v18M20 3v18M4 8h16M4 16h16M9.3 8v8M14.7 8v8"/></svg>',
+  car:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 17v-4l2.2-5.5h13.6L21 13v4z"/><path d="M3 13h18"/><circle cx="7.5" cy="17.5" r="1.8" fill="currentColor"/><circle cx="16.5" cy="17.5" r="1.8" fill="currentColor"/></svg>',
+};
+const TYPES = {
+  cellar:{ label:'Cellar', plural:'Cellars', key:'c' },
+  gate:  { label:'Gate',   plural:'Gates',   key:'g' },
+  car:   { label:'Car',    plural:'Cars',    key:'v' },
+};
+const TYPE_KEYS = Object.keys(TYPES);
+
+/* ---------- storage helpers (all guarded) ---------- */
+const LS_DATA='hgx.data.v1', LS_MATCH='hgx.match.v1', LS_UI='hgx.ui.v1';
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch(e){ return false; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} },
+};
+const idb = {
+  db:null,
+  open(){ return new Promise((res,rej)=>{ try{
+    const r=indexedDB.open('hgx',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('images');
+    r.onsuccess=()=>{ this.db=r.result; res(); };
+    r.onerror=()=>rej(r.error);
+  }catch(e){ rej(e); } }); },
+  tx(mode,fn){ return new Promise((res,rej)=>{ if(!this.db) return res(null); try{
+    const t=this.db.transaction('images',mode); const s=t.objectStore('images'); const r=fn(s);
+    t.oncomplete=()=>res(r&&r.result); t.onerror=()=>rej(t.error);
+  }catch(e){ res(null); } }); },
+  get(k){ return this.tx('readonly',s=>s.get(k)); },
+  set(k,v){ return this.tx('readwrite',s=>s.put(v,k)); },
+  del(k){ return this.tx('readwrite',s=>s.delete(k)); },
+};
+
+/* ---------- data ---------- */
+const uid = () => Math.random().toString(36).slice(2,9);
+const clone = o => JSON.parse(JSON.stringify(o));
+function defaultData(){
+  const maps={}; MAPS.forEach(m=>maps[m.id]={ image:`maps/${m.id}.webp`, markers:[] });
+  return { version:1, maps };
+}
+function normalize(d){
+  const base=defaultData();
+  if(!d || typeof d!=='object' || !d.maps) return base;
+  MAPS.forEach(m=>{
+    const src=d.maps[m.id]; if(!src) return;
+    if(typeof src.image==='string' && src.image) base.maps[m.id].image=src.image;
+    base.maps[m.id].markers=(Array.isArray(src.markers)?src.markers:[])
+      .filter(x=>x && TYPES[x.type] && isFinite(x.x) && isFinite(x.y))
+      .map(x=>({ id:String(x.id||uid()), type:x.type, x:+x.x, y:+x.y, note:String(x.note||'') }));
+  });
+  return base;
+}
+
+let hosted, data, hasLocal=false;
+const ui = Object.assign({ map:MAPS[0].id, filters:{cellar:true,gate:true,car:true}, hideRuled:false }, store.get(LS_UI,{}));
+if(!MAPS.some(m=>m.id===ui.map)) ui.map=MAPS[0].id;
+let match = store.get(LS_MATCH,{});      // { mapId: { markerId: 'yes'|'no' } }
+let mode='view', addType='cellar', selectedId=null;
+let imgURL=null, stageW=1600, stageH=1000, hasImage=false;
+const view={ x:0, y:0, s:1, fit:1 };
+
+const $=s=>document.querySelector(s);
+const vp=$('#viewport'), stage=$('#stage'), img=$('#mapimg'), mk=$('#markers'), side=$('#sideBody');
+
+const curMap  = () => MAPS.find(m=>m.id===ui.map);
+const curData = () => data.maps[ui.map];
+const curMatch= () => (match[ui.map] ||= {});
+const saveUI  = () => store.set(LS_UI,ui);
+const saveMatch=() => store.set(LS_MATCH,match);
+function saveData(){ hasLocal = store.set(LS_DATA,data); renderStatus(); }
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('show'),1800); }
+
+/* numbering per type, in array order */
+function labels(){
+  const counts={}, out={};
+  curData().markers.forEach(m=>{ counts[m.type]=(counts[m.type]||0)+1; out[m.id]=counts[m.type]; });
+  return out;
+}
+
+/* ============================================================
+   VIEW / TRANSFORM
+   ============================================================ */
+function apply(){
+  stage.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.s})`;
+  stage.style.setProperty('--inv', 1/view.s);
+}
+function fit(){
+  const r=vp.getBoundingClientRect(); if(!r.width||!r.height) return;
+  const s=Math.min(r.width/stageW, r.height/stageH)*0.94;
+  view.fit=s; view.s=s; view.x=(r.width-stageW*s)/2; view.y=(r.height-stageH*s)/2; apply();
+}
+const clampS = s => Math.max(view.fit*0.5, Math.min(view.fit*10, s));
+function zoomAt(px,py,f){
+  const ns=clampS(view.s*f), k=ns/view.s;
+  view.x=px-(px-view.x)*k; view.y=py-(py-view.y)*k; view.s=ns; apply();
+}
+function zoomCenter(f){ const r=vp.getBoundingClientRect(); zoomAt(r.width/2,r.height/2,f); }
+function toStage(cx,cy){
+  const r=vp.getBoundingClientRect();
+  return { x:((cx-r.left-view.x)/view.s)/stageW*100, y:((cy-r.top-view.y)/view.s)/stageH*100 };
+}
+function focusMarker(m){
+  const r=vp.getBoundingClientRect();
+  const s=Math.max(view.s, view.fit*2.2);
+  view.s=clampS(s);
+  view.x=r.width/2 - (m.x/100*stageW)*view.s;
+  view.y=r.height/2 - (m.y/100*stageH)*view.s;
+  stage.style.transition='transform .35s ease'; apply();
+  setTimeout(()=>stage.style.transition='',380);
+}
+
+/* ============================================================
+   MAP LOADING
+   ============================================================ */
+async function loadImage(){
+  if(imgURL){ URL.revokeObjectURL(imgURL); imgURL=null; }
+  let src=curData().image;
+  try{ const blob=await idb.get('img:'+ui.map); if(blob){ imgURL=URL.createObjectURL(blob); src=imgURL; } }catch(e){}
+  $('#phpath').textContent=curData().image||`maps/${ui.map}.png`;
+  return new Promise(res=>{
+    const id=ui.map;
+    img.onload=()=>{ if(id!==ui.map) return; hasImage=true; stageW=img.naturalWidth; stageH=img.naturalHeight; layoutStage(); res(); };
+    img.onerror=()=>{ if(id!==ui.map) return; hasImage=false; stageW=1600; stageH=1000; img.removeAttribute('src'); layoutStage(); res(); };
+    if(src) img.src=src; else img.onerror();
+  });
+}
+function layoutStage(){
+  stage.style.width=stageW+'px'; stage.style.height=stageH+'px';
+  stage.classList.toggle('noimg',!hasImage); img.style.display=hasImage?'block':'none';
+  fit();
+}
+async function switchMap(id){
+  ui.map=id; saveUI(); selectedId=null;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.id===id));
+  renderMarkers(); renderSide(); renderCard();
+  await loadImage();
+}
+async function setImageFile(file){
+  if(!file || !file.type.startsWith('image/')) return toast('That isn’t an image');
+  try{ await idb.set('img:'+ui.map, file); }catch(e){}
+  if(!idb.db){ // no IndexedDB: show for this session only
+    if(imgURL) URL.revokeObjectURL(imgURL);
+    imgURL=URL.createObjectURL(file); img.src=imgURL; toast('Image loaded (not saved — storage unavailable)'); return;
+  }
+  await loadImage(); renderSide(); toast('Map image saved in this browser');
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function stateOf(id){ return curMatch()[id]||''; }
+function renderMarkers(){
+  const lab=labels(), mt=curMatch();
+  mk.innerHTML='';
+  curData().markers.forEach(m=>{
+    const b=document.createElement('button');
+    const st=mt[m.id]||'';
+    b.className=`marker ${m.type} ${st} ${m.id===selectedId?'sel':''}`;
+    if(!ui.filters[m.type] || (mode==='view' && ui.hideRuled && st==='no')) b.classList.add('hide');
+    b.style.left=m.x+'%'; b.style.top=m.y+'%';
+    b.dataset.id=m.id;
+    b.title=`${TYPES[m.type].label} ${lab[m.id]}${m.note?' — '+m.note:''}`;
+    b.setAttribute('aria-label',b.title);
+    b.innerHTML=ICONS[m.type]+`<span class="n">${lab[m.id]}</span>`;
+    mk.appendChild(b);
+  });
+}
+
+function stateText(st){ return st==='yes'?'Spawned':st==='no'?'Not here':'Unknown'; }
+
+function renderSide(){
+  const md=curData(), mt=curMatch(), lab=labels(), map=curMap();
+  const counts={}; TYPE_KEYS.forEach(t=>counts[t]=md.markers.filter(m=>m.type===t).length);
+  let h='';
+
+  if(mode==='view'){
+    const yes=md.markers.filter(m=>mt[m.id]==='yes').length;
+    const no=md.markers.filter(m=>mt[m.id]==='no').length;
+    const unk=md.markers.length-yes-no;
+    h+=`<div class="sec"><h3>This match <button class="btn sm danger" id="resetMatch">Reset match</button></h3>
+      <div class="tally"><div class="y"><b>${yes}</b><span>Spawned</span></div><div><b>${unk}</b><span>Unchecked</span></div><div class="x"><b>${no}</b><span>Not here</span></div></div>
+      <label class="check"><input type="checkbox" id="hideRuled" ${ui.hideRuled?'checked':''}> Hide ruled-out exits</label></div>`;
+  }
+
+  h+=`<div class="sec"><h3>Show</h3><div class="chips">`+
+    TYPE_KEYS.map(t=>`<button class="chip ${t} ${ui.filters[t]?'on':''}" data-filter="${t}" aria-pressed="${ui.filters[t]}">${ICONS[t]}<span class="lbl">${TYPES[t].plural}</span><span class="ct">${counts[t]}</span></button>`).join('')+
+    `</div></div>`;
+
+  if(mode==='edit'){
+    const sel=md.markers.find(m=>m.id===selectedId);
+    h+=`<div class="sec"><h3>Place new</h3><div class="types">`+
+      TYPE_KEYS.map(t=>{ const e=map.expected[t]; const ok=counts[t]>=e;
+        return `<button class="${t}" data-addtype="${t}" aria-pressed="${addType===t}">${ICONS[t]}${TYPES[t].label} <kbd>${TYPES[t].key.toUpperCase()}</kbd><span class="pc ${ok?'ok':''}">${counts[t]} / ${e} placed</span></button>`; }).join('')+
+      `</div><p class="hint">Click the map to drop a ${TYPES[addType].label.toLowerCase()}. Drag markers to move them. Targets come from the Mobalytics guide's counts.</p></div>`;
+    if(sel){
+      h+=`<div class="sec"><h3>Selected: ${TYPES[sel.type].label} ${lab[sel.id]}</h3>
+        <label class="field"><span>Type</span><select id="selType">${TYPE_KEYS.map(t=>`<option value="${t}" ${t===sel.type?'selected':''}>${TYPES[t].label}</option>`).join('')}</select></label>
+        <label class="field"><span>Note (requirements, landmarks…)</span><textarea id="selNote" placeholder="e.g. Behind the blue house, needs key">${esc(sel.note)}</textarea></label>
+        <div class="row" style="margin-top:10px"><button class="btn danger sm" id="selDel">Delete</button><button class="btn sm" id="selDone">Done</button></div></div>`;
+    }
+    h+=`<div class="sec"><h3>Map image</h3>
+      <div class="row"><button class="btn sm" id="upImg">Upload image</button>${imgURL?'<button class="btn sm danger" id="clrImg">Remove upload</button>':''}</div>
+      <label class="field"><span>Hosted image path or URL (used when no upload)</span><input id="imgPath" value="${esc(md.image)}" placeholder="maps/${map.id}.webp"></label>
+      <p class="hint">${hasImage?`Showing ${imgURL?'uploaded image':'hosted image'} (${stageW}×${stageH}).`:'No image loaded — markers sit on the placeholder grid.'} Markers are stored as % positions, so use the same framing for each map's screenshot.</p></div>`;
+    h+=`<div class="sec"><h3>Data</h3>
+      <div class="row"><button class="btn sm primary" id="exp">Export exits.json</button><button class="btn sm" id="imp">Import</button><button class="btn sm danger" id="rev">Revert</button></div>
+      <div class="status" id="status"></div></div>`;
+  }
+
+  h+=`<div class="sec"><h3>${map.name}</h3><div class="list">`;
+  let any=false;
+  TYPE_KEYS.forEach(t=>{
+    if(!ui.filters[t]) return;
+    const items=md.markers.filter(m=>m.type===t); if(!items.length) return;
+    any=true;
+    h+=`<div class="grp"><span>${TYPES[t].plural}</span><span>${items.length}</span></div>`;
+    items.forEach(m=>{
+      const st=mt[m.id]||'';
+      h+=`<div class="item ${t} ${mode==='view'?st:''} ${m.id===selectedId?'sel':''}" data-item="${m.id}">
+        <span class="ic">${ICONS[t]}</span>
+        <span class="tx"><b>${TYPES[t].label} ${lab[m.id]}</b>${m.note?`<small>${esc(m.note)}</small>`:''}</span>
+        ${mode==='view'?`<button class="pill ${st}" data-cycle="${m.id}">${stateText(st)}</button>`:''}
+      </div>`;
+    });
+  });
+  if(!any) h+=`<div class="empty">${md.markers.length?'All types are filtered out.':'No exits placed on this map yet. Switch to <b>Edit markers</b> to add them.'}</div>`;
+  h+=`</div></div>`;
+
+  side.innerHTML=h;
+  renderStatus();
+  $('#modeHint').textContent = mode==='view'
+    ? 'Tap exits to mark Spawned → Not here → Unknown.'
+    : 'Click to place, drag to move, select to edit.';
+  $('#modebadge').innerHTML = mode==='view' ? `<b>${map.name}</b> · Play` : `<b>${map.name}</b> · Editing — placing ${TYPES[addType].plural.toLowerCase()}`;
+}
+function renderStatus(){
+  const s=$('#status'); if(!s) return;
+  s.className='status'+(hasLocal?' dirty':'');
+  s.textContent = hasLocal
+    ? 'Edits saved in this browser. Export and upload exits.json to share them.'
+    : 'Showing the hosted exits.json (no local edits).';
+}
+function renderCard(){
+  const c=$('#card');
+  const m=curData().markers.find(x=>x.id===selectedId);
+  if(!m || mode!=='view'){ c.classList.remove('show'); return; }
+  const lab=labels(), st=stateOf(m.id);
+  c.style.setProperty('--c',`var(--${m.type})`);
+  c.innerHTML=`<h4>${TYPES[m.type].label} ${lab[m.id]}</h4>${m.note?`<p>${esc(m.note)}</p>`:''}<div class="st">Status: <b style="color:${st==='yes'?'var(--yes)':st==='no'?'#ff8a8a':'var(--muted)'}">${stateText(st)}</b></div>`;
+  c.classList.add('show');
+}
+function renderAll(){ renderMarkers(); renderSide(); renderCard(); }
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function cycle(id){
+  const mt=curMatch(), st=mt[id]||'';
+  const next= st===''?'yes': st==='yes'?'no':'';
+  if(next) mt[id]=next; else delete mt[id];
+  saveMatch(); selectedId=id; renderAll();
+}
+function resetMatch(){
+  if(!Object.keys(curMatch()).length) return;
+  match[ui.map]={}; saveMatch(); renderAll(); toast('Match tracking reset');
+}
+function setMode(m){
+  mode=m; selectedId=null;
+  $('#mView').setAttribute('aria-pressed',m==='view'); $('#mEdit').setAttribute('aria-pressed',m==='edit');
+  vp.classList.toggle('edit',m==='edit');
+  renderAll();
+}
+function addMarker(x,y){
+  if(x<0||y<0||x>100||y>100) return;
+  const m={ id:uid(), type:addType, x:+x.toFixed(3), y:+y.toFixed(3), note:'' };
+  curData().markers.push(m); selectedId=m.id; saveData(); renderAll();
+}
+function deleteSelected(){
+  const md=curData(); const i=md.markers.findIndex(m=>m.id===selectedId); if(i<0) return;
+  md.markers.splice(i,1); delete curMatch()[selectedId]; saveMatch();
+  selectedId=null; saveData(); renderAll(); toast('Exit deleted');
+}
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='exits.json';
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+  toast('exits.json downloaded');
+}
+
+/* ============================================================
+   POINTER: pan / pinch / click / drag markers
+   ============================================================ */
+const pts=new Map(); let g=null;
+const rel=e=>{ const r=vp.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; };
+
+vp.addEventListener('pointerdown',e=>{
+  if(e.button>0) return;
+  if(e.target.closest('.zoomctl,#card')) return;
+  const mEl=e.target.closest('.marker');
+  if(mEl && pts.size===0){
+    e.stopPropagation();
+    const id=mEl.dataset.id;
+    mEl.setPointerCapture(e.pointerId);
+    g={ type:'marker', id, el:mEl, sx:e.clientX, sy:e.clientY, moved:false, pid:e.pointerId };
+    return;
+  }
+  vp.setPointerCapture(e.pointerId);
+  pts.set(e.pointerId,rel(e));
+  if(pts.size===1){
+    const p=rel(e); g={ type:'pan', sx:p.x, sy:p.y, ox:view.x, oy:view.y, moved:false, cx:e.clientX, cy:e.clientY };
+  } else if(pts.size===2){
+    const [a,b]=[...pts.values()];
+    const c={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    g={ type:'pinch', d:Math.hypot(a.x-b.x,a.y-b.y)||1, s:view.s, sp:{ x:(c.x-view.x)/view.s, y:(c.y-view.y)/view.s }, moved:true };
+  }
+});
+vp.addEventListener('pointermove',e=>{
+  if(!g) return;
+  if(g.type==='marker'){
+    if(e.pointerId!==g.pid) return;
+    if(Math.hypot(e.clientX-g.sx,e.clientY-g.sy)>4) g.moved=true;
+    if(g.moved && mode==='edit'){
+      const p=toStage(e.clientX,e.clientY);
+      const m=curData().markers.find(x=>x.id===g.id); if(!m) return;
+      m.x=+Math.max(0,Math.min(100,p.x)).toFixed(3); m.y=+Math.max(0,Math.min(100,p.y)).toFixed(3);
+      g.el.style.left=m.x+'%'; g.el.style.top=m.y+'%';
+    }
+    return;
+  }
+  if(!pts.has(e.pointerId)) return;
+  pts.set(e.pointerId,rel(e));
+  if(g.type==='pan' && pts.size===1){
+    const p=rel(e), dx=p.x-g.sx, dy=p.y-g.sy;
+    if(!g.moved && Math.hypot(dx,dy)>5){ g.moved=true; vp.classList.add('panning'); }
+    if(g.moved){ view.x=g.ox+dx; view.y=g.oy+dy; apply(); }
+  } else if(g.type==='pinch' && pts.size===2){
+    const [a,b]=[...pts.values()];
+    const c={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    view.s=clampS(g.s*Math.hypot(a.x-b.x,a.y-b.y)/g.d);
+    view.x=c.x-g.sp.x*view.s; view.y=c.y-g.sp.y*view.s; apply();
+  }
+});
+function endPointer(e){
+  if(g && g.type==='marker'){
+    if(e.pointerId!==g.pid) return;
+    const id=g.id, moved=g.moved; g=null;
+    if(e.type==='pointercancel') return;
+    if(mode==='edit'){ if(moved) saveData(); selectedId=id; renderAll(); }
+    else if(!moved) cycle(id);
+    return;
+  }
+  if(!pts.has(e.pointerId)) return;
+  pts.delete(e.pointerId);
+  vp.classList.remove('panning');
+  if(g && g.type==='pan' && !g.moved && pts.size===0 && e.type==='pointerup'){
+    if(mode==='edit'){ const p=toStage(g.cx,g.cy); addMarker(p.x,p.y); }
+    else if(selectedId){ selectedId=null; renderAll(); }
+  }
+  if(pts.size===1){ const p=[...pts.values()][0]; g={type:'pan',sx:p.x,sy:p.y,ox:view.x,oy:view.y,moved:true}; }
+  else if(pts.size===0) g=null;
+}
+vp.addEventListener('pointerup',endPointer);
+vp.addEventListener('pointercancel',endPointer);
+vp.addEventListener('wheel',e=>{ e.preventDefault(); const p=rel(e); zoomAt(p.x,p.y,Math.exp(-e.deltaY*(e.ctrlKey?0.01:0.0015))); },{passive:false});
+vp.addEventListener('contextmenu',e=>{ if(mode==='edit') e.preventDefault(); });
+
+/* drag & drop images */
+['dragenter','dragover'].forEach(t=>vp.addEventListener(t,e=>{ if([...e.dataTransfer.types].includes('Files')){ e.preventDefault(); vp.classList.add('dragover'); } }));
+['dragleave','drop'].forEach(t=>vp.addEventListener(t,e=>{ if(t==='dragleave' && vp.contains(e.relatedTarget)) return; vp.classList.remove('dragover'); }));
+vp.addEventListener('drop',e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) setImageFile(f); });
+
+/* ============================================================
+   UI EVENTS
+   ============================================================ */
+function buildTabs(){
+  $('#tabs').innerHTML=MAPS.map((m,i)=>`<button class="tab" role="tab" data-id="${m.id}" aria-selected="${m.id===ui.map}"><span class="k">${i+1}</span>${m.name}</button>`).join('');
+  $('#tabs').addEventListener('click',e=>{ const t=e.target.closest('.tab'); if(t && t.dataset.id!==ui.map) switchMap(t.dataset.id); });
+}
+$('#mView').onclick=()=>setMode('view');
+$('#mEdit').onclick=()=>setMode('edit');
+$('#zin').onclick=()=>zoomCenter(1.4);
+$('#zout').onclick=()=>zoomCenter(1/1.4);
+$('#zfit').onclick=fit;
+$('#helpBtn').onclick=()=>$('#help').showModal();
+
+side.addEventListener('click',async e=>{
+  const t=e.target;
+  const f=t.closest('[data-filter]'); if(f){ const k=f.dataset.filter; ui.filters[k]=!ui.filters[k]; saveUI(); renderAll(); return; }
+  const cy=t.closest('[data-cycle]'); if(cy){ e.stopPropagation(); cycle(cy.dataset.cycle); return; }
+  const at=t.closest('[data-addtype]'); if(at){ addType=at.dataset.addtype; renderSide(); return; }
+  const it=t.closest('[data-item]'); if(it){ const m=curData().markers.find(x=>x.id===it.dataset.item); if(m){ selectedId=m.id; renderAll(); focusMarker(m); } return; }
+  switch(t.id){
+    case 'resetMatch': resetMatch(); break;
+    case 'selDel': deleteSelected(); break;
+    case 'selDone': selectedId=null; renderAll(); break;
+    case 'upImg': $('#imgFile').click(); break;
+    case 'clrImg': await idb.del('img:'+ui.map); await loadImage(); renderSide(); toast('Upload removed'); break;
+    case 'exp': exportJSON(); break;
+    case 'imp': $('#jsonFile').click(); break;
+    case 'rev':
+      if(confirm('Discard this browser’s edits and go back to the hosted exits.json?')){ store.del(LS_DATA); hasLocal=false; data=clone(hosted); selectedId=null; renderAll(); await loadImage(); toast('Reverted'); }
+      break;
+  }
+});
+side.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='hideRuled'){ ui.hideRuled=t.checked; saveUI(); renderMarkers(); }
+  if(t.id==='selType'){ const m=curData().markers.find(x=>x.id===selectedId); if(m){ m.type=t.value; saveData(); renderAll(); } }
+  if(t.id==='imgPath'){ curData().image=t.value.trim(); saveData(); loadImage().then(renderSide); }
+});
+side.addEventListener('input',e=>{
+  if(e.target.id==='selNote'){ const m=curData().markers.find(x=>x.id===selectedId); if(m){ m.note=e.target.value; saveData(); renderMarkers(); } }
+});
+$('#imgFile').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f) setImageFile(f); };
+$('#jsonFile').onchange=e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const r=new FileReader();
+  r.onload=async()=>{ try{ data=normalize(JSON.parse(r.result)); saveData(); selectedId=null; renderAll(); await loadImage(); toast('Exits imported'); }catch(err){ toast('Couldn’t read that file'); } };
+  r.readAsText(f);
+};
+
+document.addEventListener('keydown',e=>{
+  if(e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if($('#help').open) return;
+  const k=e.key.toLowerCase();
+  if(/^[1-9]$/.test(k) && MAPS[+k-1]){ switchMap(MAPS[+k-1].id); return; }
+  if(k==='e'){ setMode(mode==='edit'?'view':'edit'); return; }
+  if(k==='f'){ fit(); return; }
+  if(k==='+'||k==='='){ zoomCenter(1.3); return; }
+  if(k==='-'||k==='_'){ zoomCenter(1/1.3); return; }
+  if(k==='r' && mode==='view'){ resetMatch(); return; }
+  if(k==='?'){ $('#help').showModal(); return; }
+  if(k==='escape'){ selectedId=null; renderAll(); return; }
+  if(mode==='edit'){
+    const t=TYPE_KEYS.find(x=>TYPES[x].key===k); if(t){ addType=t; renderSide(); return; }
+    if((k==='delete'||k==='backspace') && selectedId){ e.preventDefault(); deleteSelected(); }
+  }
+});
+let rz; window.addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(fit,120); });
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+(async function init(){
+  try{ const r=await fetch('exits.json',{cache:'no-store'}); if(r.ok) hosted=normalize(await r.json()); }catch(e){}
+  if(!hosted) hosted=normalize(EMBEDDED);
+  const local=store.get(LS_DATA,null);
+  hasLocal=!!local;
+  data= local ? normalize(local) : clone(hosted);
+  try{ await idb.open(); }catch(e){}
+  buildTabs();
+  setMode('view');
+  await switchMap(ui.map);
+  if(!store.get('hgx.seenHelp',false)){ store.set('hgx.seenHelp',true); $('#help').showModal(); }
+})();
+</script>
+</body>
+</html>

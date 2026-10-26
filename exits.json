@@ -1,0 +1,340 @@
+{
+  "version": 1,
+  "maps": {
+    "east-haddonfield": {
+      "image": "maps/east-haddonfield.webp",
+      "markers": [
+        {
+          "id": "ea1",
+          "type": "cellar",
+          "x": 12.03,
+          "y": 19.65,
+          "note": ""
+        },
+        {
+          "id": "ea2",
+          "type": "cellar",
+          "x": 56.09,
+          "y": 11.24,
+          "note": ""
+        },
+        {
+          "id": "ea3",
+          "type": "cellar",
+          "x": 93.46,
+          "y": 53.29,
+          "note": ""
+        },
+        {
+          "id": "ea4",
+          "type": "cellar",
+          "x": 40.72,
+          "y": 70.87,
+          "note": ""
+        },
+        {
+          "id": "ea5",
+          "type": "cellar",
+          "x": 66.32,
+          "y": 80.58,
+          "note": ""
+        },
+        {
+          "id": "ea6",
+          "type": "gate",
+          "x": 4.64,
+          "y": 75.84,
+          "note": ""
+        },
+        {
+          "id": "ea7",
+          "type": "car",
+          "x": 70.71,
+          "y": 11.16,
+          "note": ""
+        },
+        {
+          "id": "ea8",
+          "type": "car",
+          "x": 15.97,
+          "y": 52.29,
+          "note": ""
+        },
+        {
+          "id": "ea9",
+          "type": "car",
+          "x": 45.21,
+          "y": 65.9,
+          "note": ""
+        },
+        {
+          "id": "ea10",
+          "type": "car",
+          "x": 77.3,
+          "y": 65.67,
+          "note": ""
+        }
+      ]
+    },
+    "haddonfield-heights": {
+      "image": "maps/haddonfield-heights.webp",
+      "markers": [
+        {
+          "id": "ha1",
+          "type": "cellar",
+          "x": 36.15,
+          "y": 22.91,
+          "note": ""
+        },
+        {
+          "id": "ha2",
+          "type": "cellar",
+          "x": 51.15,
+          "y": 23.15,
+          "note": ""
+        },
+        {
+          "id": "ha3",
+          "type": "cellar",
+          "x": 87.4,
+          "y": 27.76,
+          "note": ""
+        },
+        {
+          "id": "ha4",
+          "type": "cellar",
+          "x": 17.71,
+          "y": 34.18,
+          "note": ""
+        },
+        {
+          "id": "ha5",
+          "type": "cellar",
+          "x": 43.96,
+          "y": 60.73,
+          "note": ""
+        },
+        {
+          "id": "ha6",
+          "type": "cellar",
+          "x": 81.09,
+          "y": 62.55,
+          "note": ""
+        },
+        {
+          "id": "ha7",
+          "type": "cellar",
+          "x": 19.64,
+          "y": 87.7,
+          "note": ""
+        },
+        {
+          "id": "ha8",
+          "type": "cellar",
+          "x": 56.3,
+          "y": 82.67,
+          "note": ""
+        },
+        {
+          "id": "ha9",
+          "type": "gate",
+          "x": 47.6,
+          "y": 5.33,
+          "note": ""
+        },
+        {
+          "id": "ha10",
+          "type": "gate",
+          "x": 95.0,
+          "y": 18.79,
+          "note": ""
+        },
+        {
+          "id": "ha11",
+          "type": "gate",
+          "x": 62.55,
+          "y": 91.03,
+          "note": ""
+        },
+        {
+          "id": "ha12",
+          "type": "car",
+          "x": 59.48,
+          "y": 16.67,
+          "note": ""
+        },
+        {
+          "id": "ha13",
+          "type": "car",
+          "x": 40.78,
+          "y": 46.55,
+          "note": ""
+        },
+        {
+          "id": "ha14",
+          "type": "car",
+          "x": 55.36,
+          "y": 63.45,
+          "note": ""
+        },
+        {
+          "id": "ha15",
+          "type": "car",
+          "x": 21.82,
+          "y": 95.21,
+          "note": ""
+        }
+      ]
+    },
+    "town-center": {
+      "image": "maps/town-center.webp",
+      "markers": [
+        {
+          "id": "to1",
+          "type": "cellar",
+          "x": 14.84,
+          "y": 38.8,
+          "note": ""
+        },
+        {
+          "id": "to2",
+          "type": "cellar",
+          "x": 55.54,
+          "y": 44.04,
+          "note": ""
+        },
+        {
+          "id": "to3",
+          "type": "cellar",
+          "x": 62.83,
+          "y": 76.56,
+          "note": ""
+        },
+        {
+          "id": "to4",
+          "type": "gate",
+          "x": 92.83,
+          "y": 94.92,
+          "note": ""
+        },
+        {
+          "id": "to5",
+          "type": "car",
+          "x": 26.85,
+          "y": 32.73,
+          "note": ""
+        },
+        {
+          "id": "to6",
+          "type": "car",
+          "x": 72.5,
+          "y": 36.28,
+          "note": ""
+        },
+        {
+          "id": "to7",
+          "type": "car",
+          "x": 73.1,
+          "y": 68.58,
+          "note": ""
+        },
+        {
+          "id": "to8",
+          "type": "car",
+          "x": 54.84,
+          "y": 86.12,
+          "note": ""
+        }
+      ]
+    },
+    "orange-grove": {
+      "image": "maps/orange-grove.webp",
+      "markers": [
+        {
+          "id": "or1",
+          "type": "cellar",
+          "x": 59.73,
+          "y": 12.8,
+          "note": ""
+        },
+        {
+          "id": "or2",
+          "type": "cellar",
+          "x": 93.15,
+          "y": 60.75,
+          "note": ""
+        },
+        {
+          "id": "or3",
+          "type": "cellar",
+          "x": 30.82,
+          "y": 88.92,
+          "note": ""
+        },
+        {
+          "id": "or4",
+          "type": "cellar",
+          "x": 64.95,
+          "y": 85.05,
+          "note": ""
+        },
+        {
+          "id": "or5",
+          "type": "gate",
+          "x": 50.98,
+          "y": 6.34,
+          "note": ""
+        },
+        {
+          "id": "or6",
+          "type": "gate",
+          "x": 89.13,
+          "y": 9.46,
+          "note": ""
+        },
+        {
+          "id": "or7",
+          "type": "gate",
+          "x": 32.23,
+          "y": 95.7,
+          "note": ""
+        },
+        {
+          "id": "or8",
+          "type": "car",
+          "x": 51.03,
+          "y": 24.84,
+          "note": ""
+        },
+        {
+          "id": "or9",
+          "type": "car",
+          "x": 32.61,
+          "y": 32.31,
+          "note": ""
+        },
+        {
+          "id": "or10",
+          "type": "car",
+          "x": 53.32,
+          "y": 45.59,
+          "note": ""
+        },
+        {
+          "id": "or11",
+          "type": "car",
+          "x": 35.05,
+          "y": 66.45,
+          "note": ""
+        },
+        {
+          "id": "or12",
+          "type": "car",
+          "x": 54.67,
+          "y": 80.59,
+          "note": ""
+        }
+      ]
+    }
+  }
+}
