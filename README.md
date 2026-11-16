@@ -1,5 +1,9 @@
 # 🎃 Haddonfield Exits
 
+[![Downloads](https://img.shields.io/github/downloads/g-hostproxy/Halloween-Map-Exits/total?style=for-the-badge&color=ff7a1a&label=downloads)](https://github.com/g-hostproxy/Halloween-Map-Exits/releases)
+[![Visits](https://hits.sh/github.com/g-hostproxy/Halloween-Map-Exits.svg?style=for-the-badge&label=visits&color=ff7a1a)](https://hits.sh/github.com/g-hostproxy/Halloween-Map-Exits/)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-ffdd00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/g.hostproxy)
+
 An interactive exit map for **Halloween: The Game**. It shows every possible escape spawn on all four maps, and you can track which ones actually showed up in your current match.
 
 ![Haddonfield Exits: Haddonfield Heights mid-match, with spawned exits highlighted and ruled-out exits dimmed](docs/preview.webp)
@@ -114,6 +118,12 @@ python3 -m http.server 8000
 When the site is hosted, `exits.json` takes priority over the copy embedded in `index.html`. If you also want the embedded copy (used when opening the file locally) to match, paste the exported JSON into the `EMBEDDED` constant near the top of the script in `index.html`.
 
 To replace a map image, overwrite the file in `maps/` with a new screenshot. Use the same framing as the old one, or realign the markers in Edit mode afterwards.
+
+## Support
+
+If this saved you a few matches' worth of running around, you can buy me a coffee:
+
+<a href="https://buymeacoffee.com/g.hostproxy"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="50"></a>
 
 ## Credits
 
